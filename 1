@@ -1,0 +1,56 @@
+def func_support_notify():
+    try:
+        support_id = 5296167131
+        bot.send_message(support_id, 'Поступила заявка на подписку')
+    except Exception as e:
+        print('Send notify to support: ', e)
+
+def show_admin_history(chat_id, message_id, page):
+    markup = types.InlineKeyboardMarkup()
+
+    page_size = 10
+
+    pStart = page * page_size
+    pEnd = pStart + page_size
+
+    d = DataBase()
+    data = list(d.get_all_history())
+
+
+    history = []
+
+    for i in range(pStart, pEnd):
+        if (len(data) - 1) >= i:
+            event_name = list(data[i])[2]
+            event_type = list(data[i])[3]
+
+            user_name = json.loads(event_name)['username']
+            product_name = json.loads(event_name)['product_name']
+
+            if event_type == 'rejected application':
+                t_form = f'❌ {user_name} {product_name}'
+            elif event_type == 'confirmed application':
+                t_form = f'✅ {user_name} {product_name}'
+
+            history.append(t_form)
+        else:
+            break
+
+    history_form = '\n'.join(history)
+
+    if len(data) > page_size and pEnd <= len(data):
+        forward = types.InlineKeyboardButton('Вперед', callback_data=f'show_admin_history|{page+1}')
+        markup.add(forward)
+
+    if page > 0:
+        page_back = types.InlineKeyboardButton('Назад', callback_data=f'show_admin_history|{page-1}')
+        markup.add(page_back)
+
+    mm = types.InlineKeyboardButton('Главное меню', callback_data=f'main_menu')
+    back = types.InlineKeyboardButton('В админку', callback_data=f'show_admin_panel')
+    markup.add(back, mm)
+
+    text = f'История пополнений ({page} страница):\n{history_form}'
+
+    bot.edit_message_text(text, chat_id, message_id)
+    bot.edit_message_reply_markup(chat_id, message_id, reply_markup=markup)
